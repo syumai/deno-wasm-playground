@@ -7,7 +7,7 @@ import './wasm_exec.js';
     go.importObject
   );
   const mod = result.module;
-  const inst = result.instance;
+  let inst = result.instance;
 
   console.clear();
   await go.run(inst);
