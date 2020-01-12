@@ -288,7 +288,7 @@
         const saddr = getInt64(addr + 0);
         const len = getInt64(addr + 8);
         return decoder.decode(
-          new DataView(this._inst.exports.mem.buffer, saddr, len),
+          new DataView(this._inst.exports.mem.buffer, saddr, len)
         );
       };
 
@@ -319,7 +319,7 @@
             const n = this.mem.getInt32(sp + 24, true);
             fs.writeSync(
               fd,
-              new Uint8Array(this._inst.exports.mem.buffer, p, n),
+              new Uint8Array(this._inst.exports.mem.buffer, p, n)
             );
           },
 
@@ -356,8 +356,8 @@
                     this._resume();
                   }
                 },
-                getInt64(sp + 8) + 1, // setTimeout has been seen to fire up to 1 millisecond early
-              ),
+                getInt64(sp + 8) + 1 // setTimeout has been seen to fire up to 1 millisecond early
+              )
             );
             this.mem.setInt32(sp + 16, id, true);
           },
@@ -403,7 +403,7 @@
             Reflect.set(
               loadValue(sp + 8),
               loadString(sp + 16),
-              loadValue(sp + 32),
+              loadValue(sp + 32)
             );
           },
 
@@ -416,7 +416,7 @@
           'syscall/js.valueIndex': sp => {
             storeValue(
               sp + 24,
-              Reflect.get(loadValue(sp + 8), getInt64(sp + 16)),
+              Reflect.get(loadValue(sp + 8), getInt64(sp + 16))
             );
           },
 
@@ -425,7 +425,7 @@
             Reflect.set(
               loadValue(sp + 8),
               getInt64(sp + 16),
-              loadValue(sp + 24),
+              loadValue(sp + 24)
             );
           },
 
@@ -497,7 +497,7 @@
           'syscall/js.valueInstanceOf': sp => {
             this.mem.setUint8(
               sp + 24,
-              loadValue(sp + 8) instanceof loadValue(sp + 16),
+              loadValue(sp + 8) instanceof loadValue(sp + 16)
             );
           },
 
@@ -609,7 +609,7 @@
     _makeFuncWrapper(id) {
       const go = this;
       return function() {
-        const event = {id: id, this: this, args: arguments};
+        const event = { id: id, this: this, args: arguments };
         go._pendingEvent = event;
         go._resume();
         return event.result;
