@@ -11,12 +11,19 @@ func main() {
 	var r js.Func
 	r = js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
 		defer r.Release()
-		b := make([]byte, 16)
-		_, err := read(args[0], b) // read 16 bytes from JS
-		if err != nil {
-			panic(err)
-		}
-		return js.ValueOf(string(b))
+		p := newPromise(func(this js.Value, pArgs []js.Value) interface{} {
+			resolve := pArgs[0]
+			b := make([]byte, 16)
+			go func() {
+				_, err := read(args[0], b) // read 16 bytes from JS
+				if err != nil {
+					panic(err)
+				}
+				resolve.Invoke(js.ValueOf(string(b)))
+			}()
+			return js.Undefined()
+		})
+		return p
 	})
 	js.Global().Set("read", r)
 
@@ -135,6 +142,13 @@ func seek(v js.Value, offset int64, whence int) (int64, error) {
 	}()
 	result := <-resultCh
 	return int64(result.Int()), nil
+}
+
+type Callback = func(this js.Value, args []js.Value) interface{}
+
+func newPromise(fn Callback) js.Value {
+	p := js.Global().Get("Promise")
+	return p.New(js.FuncOf(fn))
 }
 
 func newUint8Array(size int) js.Value {

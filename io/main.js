@@ -10,7 +10,7 @@ go.run(result.instance);
 
 async function readExample() {
     const f = await Deno.open("./example.txt");
-    const result = read(f);
+    const result = await read(f);
     console.log(result);
     f.close();
 }
@@ -28,7 +28,7 @@ async function seekExample() {
     f.close();
 }
 
+await readExample();
 await seekExample();
 await writeExample();
-await readExample();
 callExit();
