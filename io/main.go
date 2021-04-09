@@ -4,14 +4,15 @@ package main
 import (
 	"io"
 	"syscall/js"
-	"time"
 )
 
 func main() {
 	var r js.Func
 	r = js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
 		defer r.Release()
-		p := newPromise(func(this js.Value, pArgs []js.Value) interface{} {
+		var cb js.Func
+		cb = js.FuncOf(func (_ js.Value, pArgs []js.Value) interface{} {
+			defer cb.Release()
 			resolve := pArgs[0]
 			b := make([]byte, 16)
 			go func() {
@@ -23,6 +24,7 @@ func main() {
 			}()
 			return js.Undefined()
 		})
+		p := newPromise(cb)
 		return p
 	})
 	js.Global().Set("read", r)
@@ -30,41 +32,46 @@ func main() {
 	var w js.Func
 	w = js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
 		defer w.Release()
-		b := []byte{1, 2, 3, 4, 5, 6, 7, 8}
-		n, err := write(args[0], b) // write 8 bytes to JS
-		if err != nil {
-			panic(err)
-		}
-		return js.ValueOf(n)
+		var cb js.Func
+		cb = js.FuncOf(func (_ js.Value, pArgs []js.Value) interface{} {
+			defer cb.Release()
+			resolve := pArgs[0]
+			b := []byte{1, 2, 3, 4, 5, 6, 7, 8}
+			go func() {
+				n, err := write(args[0], b) // write 8 bytes to JS
+				if err != nil {
+					panic(err)
+				}
+				resolve.Invoke(js.ValueOf(n))
+			}()
+			return js.Undefined()
+		})
+		p := newPromise(cb)
+		return p
 	})
 	js.Global().Set("write", w)
 
 	var s js.Func
 	s = js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
 		defer s.Release()
-		n, err := seek(args[0], 4, 0) // seek 4 bytes from start
-		if err != nil {
-			panic(err)
-		}
-		return js.ValueOf(n)
+		var cb js.Func
+		cb = js.FuncOf(func (_ js.Value, pArgs []js.Value) interface{} {
+			defer cb.Release()
+			resolve := pArgs[0]
+			go func() {
+				n, err := seek(args[0], 4, 0) // seek 4 bytes from start
+				if err != nil {
+					panic(err)
+				}
+				resolve.Invoke(js.ValueOf(n))
+			}()
+			return js.Undefined()
+		})
+		p := newPromise(cb)
+		return p
 	})
 	js.Global().Set("seek", s)
-
-	exitCh := make(chan struct{})
-	var exit js.Func
-	exit = js.FuncOf(func(js.Value, []js.Value) interface{} {
-		defer exit.Release()
-		close(exitCh)
-		return js.Undefined()
-	})
-	js.Global().Set("callExit", exit)
-	ticker := time.NewTicker(100 * time.Millisecond)
-	for {
-		select {
-		case <-ticker.C:
-		case <-exitCh:
-		}
-	}
+	select {}
 }
 
 func read(v js.Value, p []byte) (int, error) {
@@ -146,9 +153,9 @@ func seek(v js.Value, offset int64, whence int) (int64, error) {
 
 type Callback = func(this js.Value, args []js.Value) interface{}
 
-func newPromise(fn Callback) js.Value {
+func newPromise(fn js.Func) js.Value {
 	p := js.Global().Get("Promise")
-	return p.New(js.FuncOf(fn))
+	return p.New(fn)
 }
 
 func newUint8Array(size int) js.Value {

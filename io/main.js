@@ -17,13 +17,13 @@ async function readExample() {
 
 async function writeExample() {
     const buf = new Buffer();
-    const result = write(buf);
+    const result = await write(buf);
     console.log(result);
 }
 
 async function seekExample() {
     const f = await Deno.open("./example.txt");
-    const result = seek(f);
+    const result = await seek(f);
     console.log(result);
     f.close();
 }
@@ -31,4 +31,3 @@ async function seekExample() {
 await readExample();
 await seekExample();
 await writeExample();
-callExit();
